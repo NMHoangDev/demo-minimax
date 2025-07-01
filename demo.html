@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic Tac Toe: Minimax vs Alpha-Beta</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: #fff;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .game-section {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .container {
+            background-color: #ffffff20;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+        }
+
+        .container h3 {
+            color: #ffeb3b;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .cell:hover {
+            background-color: #eee;
+        }
+
+        .stats,
+        .analysis,
+        .nodes {
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background-color: #ffc107;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ffb300;
+        }
+    </style>
+</head>
+
+<body>
+    <h1> Tic Tac Toe: Minimax vs Alpha-Beta</h1>
+    <div class="game-section">
+        <div class="container">
+            <h3>Minimax AI</h3>
+            <div id="minimax-board" class="board"></div>
+            <div id="minimax-stats" class="stats">AI Time: 0ms</div>
+            <div id="minimax-nodes" class="nodes">Nodes visited: 0</div>
+            <div id="minimax-analysis" class="analysis"></div>
+        </div>
+
+        <div class="container">
+            <h3>Alpha-Beta AI</h3>
+            <div id="alphabeta-board" class="board"></div>
+            <div id="alphabeta-stats" class="stats">AI Time: 0ms</div>
+            <div id="alphabeta-nodes" class="nodes">Nodes visited: 0</div>
+            <div id="alphabeta-analysis" class="analysis"></div>
+        </div>
+    </div>
+    <br />
+    <button onclick="setupGame()">🔄 Chơi lại</button>
+
+    <script>
+        let board;
+        let turn = 'X';
+
+        function createEmptyBoard() {
+            return Array(9).fill(null);
+        }
+
+        function checkWinner(b) {
+            const lines = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (const [a, b1, c] of lines) {
+                if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+            }
+            return b.includes(null) ? null : 'T';
+        }
+
+        function renderBoard(boardId, board, onClick) {
+            const container = document.getElementById(boardId);
+            container.innerHTML = '';
+            board.forEach((cell, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cell';
+                div.textContent = cell || '';
+                div.onclick = () => onClick(idx);
+                container.appendChild(div);
+            });
+        }
+
+        function minimax(board, isMax) {
+            nodeCounter++;
+            const winner = checkWinner(board);
+            if (winner === 'X') return { score: -1 };
+            if (winner === 'O') return { score: 1 };
+            if (winner === 'T') return { score: 0 };
+
+            let best = isMax ? { score: -Infinity } : { score: Infinity };
+            for (let i = 0; i < 9; i++) {
+                if (!board[i]) {
+                    board[i] = isMax ? 'O' : 'X';
+                    const res = minimax(board, !isMax);
+                    board[i] = null;
+                    res.move = i;
+                    if (isMax && res.score > best.score) best = res;
+                    if (!isMax && res.score < best.score) best = res;
+                }
+            }
+            return best;
+        }
+
+        function alphabeta(board, isMax, alpha, beta) {
+            nodeCounter++;
+            const winner = checkWinner(board);
+            if (winner === 'X') return { score: -1 };
+            if (winner === 'O') return { score: 1 };
+            if (winner === 'T') return { score: 0 };
+
+            let best = isMax ? { score: -Infinity } : { score: Infinity };
+            for (let i = 0; i < 9; i++) {
+                if (!board[i]) {
+                    board[i] = isMax ? 'O' : 'X';
+                    const res = alphabeta(board, !isMax, alpha, beta);
+                    board[i] = null;
+                    res.move = i;
+                    if (isMax) {
+                        if (res.score > best.score) best = res;
+                        alpha = Math.max(alpha, best.score);
+                    } else {
+                        if (res.score < best.score) best = res;
+                        beta = Math.min(beta, best.score);
+                    }
+                    if (beta <= alpha) break;
+                }
+            }
+            return best;
+        }
+
+        let nodeCounter = 0;
+
+        function aiPlay(aiFunc, boardCopy) {
+            nodeCounter = 0;
+            const start = performance.now();
+            const possibilities = [];
+            for (let i = 0; i < 9; i++) {
+                if (!boardCopy[i]) {
+                    const copy = boardCopy.slice();
+                    copy[i] = 'O';
+                    const result = aiFunc(copy, false);
+                    possibilities.push({ move: i, score: result.score });
+                }
+            }
+            const best = possibilities.reduce((a, b) => a.score > b.score ? a : b);
+            const worst = possibilities.reduce((a, b) => a.score < b.score ? a : b);
+            const move = best.move;
+            const end = performance.now();
+
+            return { move, best, worst, time: (end - start).toFixed(2), nodes: nodeCounter };
+        }
+
+        function updateUI() {
+            renderBoard('minimax-board', board, onClick);
+            renderBoard('alphabeta-board', board, onClick);
+        }
+
+        function onClick(index) {
+            if (board[index] || checkWinner(board)) return;
+            board[index] = 'X';
+            turn = 'O';
+            updateUI();
+
+            const winner = checkWinner(board);
+            if (winner) {
+                setTimeout(() => alert(winner === 'T' ? 'Hòa!' : `${winner} thắng!`), 100);
+                return;
+            }
+
+            setTimeout(() => {
+                // Minimax AI
+                const mmBoard = board.slice();
+                const mm = aiPlay(minimax, mmBoard);
+                document.getElementById('minimax-stats').textContent = `AI Time: ${mm.time}ms`;
+                document.getElementById('minimax-analysis').textContent = `Best: ô ${mm.best.move} (score: ${mm.best.score}), Worst: ô ${mm.worst.move}`;
+                document.getElementById('minimax-nodes').textContent = `Nodes visited: ${mm.nodes}`;
+
+                // AlphaBeta AI
+                const abBoard = board.slice();
+                const ab = aiPlay((b, m) => alphabeta(b, m, -Infinity, Infinity), abBoard);
+                document.getElementById('alphabeta-stats').textContent = `AI Time: ${ab.time}ms`;
+                document.getElementById('alphabeta-analysis').textContent = `Best: ô ${ab.best.move} (score: ${ab.best.score}), Worst: ô ${ab.worst.move}`;
+                document.getElementById('alphabeta-nodes').textContent = `Nodes visited: ${ab.nodes}`;
+
+                // Đồng bộ chọn move giống nhau (Minimax làm chuẩn)
+                board[mm.move] = 'O';
+                turn = 'X';
+                updateUI();
+
+                const winner2 = checkWinner(board);
+                if (winner2) {
+                    setTimeout(() => alert(winner2 === 'T' ? 'Hòa!' : `${winner2} thắng!`), 100);
+                }
+            }, 400);
+        }
+
+        function setupGame() {
+            board = createEmptyBoard();
+            turn = 'X';
+            updateUI();
+            document.querySelectorAll('.stats, .analysis, .nodes').forEach(el => el.textContent = '');
+        }
+
+        setupGame();
+    </script>
+</body>
+
+</html>
